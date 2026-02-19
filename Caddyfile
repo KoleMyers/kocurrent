@@ -2,7 +2,14 @@
 # Caddy will obtain Let's Encrypt certificates automatically (ensure DNS points here and ports 80/443 are open).
 
 chat.kocurrent.com {
-    reverse_proxy rocketchat:3000
+    reverse_proxy rocketchat:3000 {
+        # Required for Rocket.Chat socket.io / WebSocket (avoids "connection could not be established")
+        flush_interval 0
+        transport http {
+            read_timeout 0
+            write_timeout 0
+        }
+    }
 }
 
 meet.kocurrent.com {
