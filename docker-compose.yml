@@ -1,0 +1,133 @@
+# TeamSpeak 3 (voice) + Jitsi Meet (video) on one host
+# Usage: copy .env.example to .env, set PUBLIC_URL and Jitsi passwords, then:
+#   docker compose up -d
+
+services:
+  # --- TeamSpeak 3 (voice) ---
+  teamspeak:
+    build: .
+    image: kotalk-teamspeak:latest
+    restart: unless-stopped
+    ports:
+      - "9987:9987/udp"   # voice
+      - "10011:10011"     # serverquery
+      - "30033:30033"     # file transfer
+    environment:
+      - TS3SERVER_LICENSE=accept
+    volumes:
+      - teamspeak-data:/var/ts3server
+    # No need to join Jitsi network; TS and Jitsi run independently on same host
+
+  # --- Jitsi Meet (video) - official images ---
+  web:
+    image: jitsi/web:${JITSI_IMAGE_VERSION:-unstable}
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ${CONFIG:-./jitsi-cfg}/web:/config:Z
+      - ${CONFIG:-./jitsi-cfg}/web/crontabs:/var/spool/cron/crontabs:Z
+      - ${CONFIG:-./jitsi-cfg}/transcripts:/usr/share/jitsi-meet/transcripts:Z
+    env_file: .env
+    environment:
+      - PUBLIC_URL
+      - TZ
+      - ENABLE_LETSENCRYPT
+      - LETSENCRYPT_DOMAIN
+      - LETSENCRYPT_EMAIL
+      - DISABLE_HTTPS
+      - XMPP_DOMAIN
+      - XMPP_BOSH_URL_BASE
+      - XMPP_AUTH_DOMAIN
+      - XMPP_MUC_DOMAIN
+      - XMPP_GUEST_DOMAIN
+    depends_on:
+      - jvb
+    networks:
+      - meet.jitsi
+
+  prosody:
+    image: jitsi/prosody:${JITSI_IMAGE_VERSION:-unstable}
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG:-./jitsi-cfg}/prosody/config:/config:Z
+      - ${CONFIG:-./jitsi-cfg}/prosody/prosody-plugins-custom:/prosody-plugins-custom:Z
+    env_file: .env
+    environment:
+      - AUTH_TYPE
+      - ENABLE_AUTH
+      - ENABLE_GUESTS
+      - XMPP_DOMAIN
+      - XMPP_AUTH_DOMAIN
+      - XMPP_GUEST_DOMAIN
+      - XMPP_MUC_DOMAIN
+      - XMPP_INTERNAL_MUC_DOMAIN
+      - XMPP_RECORDER_DOMAIN
+      - JICOFO_AUTH_PASSWORD
+      - JVB_AUTH_PASSWORD
+      - JIGASI_XMPP_PASSWORD
+      - JIGASI_TRANSCRIBER_PASSWORD
+      - JIBRI_RECORDER_PASSWORD
+      - JIBRI_XMPP_PASSWORD
+      - PUBLIC_URL
+      - XMPP_SERVER
+      - TZ
+    networks:
+      meet.jitsi:
+        aliases:
+          - ${XMPP_SERVER:-xmpp.meet.jitsi}
+
+  jicofo:
+    image: jitsi/jicofo:${JITSI_IMAGE_VERSION:-unstable}
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG:-./jitsi-cfg}/jicofo:/config:Z
+    env_file: .env
+    environment:
+      - XMPP_DOMAIN
+      - XMPP_AUTH_DOMAIN
+      - XMPP_INTERNAL_MUC_DOMAIN
+      - XMPP_MUC_DOMAIN
+      - XMPP_SERVER
+      - JICOFO_AUTH_PASSWORD
+      - JVB_BREWERY_MUC
+      - JVB_AUTH_PASSWORD
+      - TZ
+    depends_on:
+      - prosody
+    networks:
+      - meet.jitsi
+
+  jvb:
+    image: jitsi/jvb:${JITSI_IMAGE_VERSION:-unstable}
+    restart: unless-stopped
+    ports:
+      - "${JVB_PORT:-10000}:${JVB_PORT:-10000}/udp"
+      - "127.0.0.1:${JVB_COLIBRI_PORT:-8080}:8080"
+    volumes:
+      - ${CONFIG:-./jitsi-cfg}/jvb:/config:Z
+    env_file: .env
+    environment:
+      - DOCKER_HOST_ADDRESS
+      - PUBLIC_URL
+      - JVB_AUTH_USER
+      - JVB_AUTH_PASSWORD
+      - JVB_BREWERY_MUC
+      - XMPP_AUTH_DOMAIN
+      - XMPP_INTERNAL_MUC_DOMAIN
+      - XMPP_SERVER
+      - JVB_PORT
+      - JVB_ADVERTISE_IPS
+      - TZ
+    depends_on:
+      - prosody
+    networks:
+      - meet.jitsi
+
+volumes:
+  teamspeak-data:
+
+networks:
+  meet.jitsi:
+    driver: bridge

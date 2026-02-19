@@ -1,0 +1,20 @@
+# Env and secrets (use .env.example as template)
+.env
+.env.local
+.env.*.local
+
+# Jitsi generated config and data
+jitsi-cfg/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Optional: certs/keys if stored in repo
+*.pem
+*.key
+!*.pub
