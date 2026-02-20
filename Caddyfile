@@ -3,13 +3,11 @@
 
 chat.kocurrent.com {
 	reverse_proxy rocketchat:3000 {
-		# WebSocket + long-lived connections
 		flush_interval 0
 		transport http {
 			read_timeout 0
 			write_timeout 0
 		}
-		# So Rocket.Chat sees correct URL (required for socket.io / connection.otherError fix)
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
 	}
