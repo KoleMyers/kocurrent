@@ -14,5 +14,13 @@ chat.kocurrent.com {
 }
 
 meet.kocurrent.com {
-    reverse_proxy web:80
+    reverse_proxy web:80 {
+        flush_interval 0
+        transport http {
+            read_timeout 0
+            write_timeout 0
+        }
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Host {host}
+    }
 }
