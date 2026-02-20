@@ -108,6 +108,7 @@ services:
       - XMPP_AUTH_DOMAIN
       - XMPP_MUC_DOMAIN
       - XMPP_GUEST_DOMAIN
+      - ENABLE_XMPP_WEBSOCKET
     depends_on:
       - jvb
     deploy:
@@ -142,6 +143,7 @@ services:
       - JIBRI_XMPP_PASSWORD
       - PUBLIC_URL
       - XMPP_SERVER
+      - ENABLE_XMPP_WEBSOCKET
       - TZ
     deploy:
       resources:
